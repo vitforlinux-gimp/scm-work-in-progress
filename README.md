@@ -1,2 +1,4 @@
 # scm-work-in-progress
-experimental script... caution!
+experimental scripts... caution!
+
+Need Gimp 2.10
