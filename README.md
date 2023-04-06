@@ -1,2 +1,2 @@
 # scm-work-in-progress
-sperimental script... caution!
+experimental script... caution!
