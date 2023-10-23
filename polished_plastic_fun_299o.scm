@@ -29,7 +29,7 @@
 ;299k added text alignment functions transparence, and materials carbon fiber, aluminium, jeans, bovination, camouflage
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (define list-blend-ppf-dir '("Top-Botton" "Bottom-Top" "Left-Right" "Right-Left" "Diag-Top-Left" "Diag-Top-Right" "Diag-Bottom-Left" "Diag-Bottom-Right" "Diag-to-center" "Diag-from-center" "Center-to-Top center" "Center-to-Bottom center" ))
-(define list-fill-ppf-dir '("Color" "Pattern" "Gradient" "Carbon fiber" "Aluminium Brushed" "Aluminium Brushed Light" "Blue Jeans" "Dark Jeans" "Bovination 2.10 only" "Camouflage 2.10 only"  "Bovination 2.99" "Camouflage 2.99" "Plasma" "None"  "Patchwork" "Diffraction" "Pizza" "Leopard" "Giraffe" "Zebra" "Leopard 2 colors" "Snake" "Snake 2 colors" "Pois 2 colors" "Squares 2 colors" "Emap gradient"))
+(define list-fill-ppf-dir '("Color" "Pattern" "Gradient" "Carbon fiber" "Aluminium Brushed" "Aluminium Brushed Light" "Blue Jeans" "Dark Jeans" "Bovination 2.10 only" "Camouflage 2.10 only"  "Bovination 2.99" "Camouflage 2.99" "Plasma" "None"  "Patchwork" "Diffraction" "Pizza" "Leopard" "Giraffe" "Zebra" "Leopard 2 colors" "Snake" "Snake 2 colors" "Pois 2 colors" "Squares 2 colors" "Emap gradient" "Pijama Gradient"))
 (define list-effect-ppf-dir '("None" "Blur" "Oilify" "Cubism" "Ripple" "Bump with pattern" "Desaturate & Chrome"  "Desaturate+Chrome+Color LIGHTEN ONLY" "Desaturate+Chrome+Color MULTILPLY"  "Desaturate+Chrome+Color OVERLAY" "Desaturate+Color  LIGHTEN ONLY" "Desaturate+Color MULTILPLY" "Desaturate+Color OVERLAY"))
 
 
@@ -273,6 +273,15 @@
 				(gimp-selection-none image)
 				(gimp-layer-set-lock-alpha fond TRUE)
 	      (plug-in-oilify 1 image fond 20 0) 
+			))
+			
+		(define (material-pijama fond image gradient)  			(begin
+(gimp-context-set-gradient gradient)
+ (gimp-context-set-gradient-repeat-mode REPEAT-SAWTOOTH)
+ (gimp-drawable-edit-gradient-fill fond 0 0 REPEAT-NONE FALSE 0.0 FALSE 0 0 90 45)
+ (gimp-drawable-posterize fond 3)
+
+
 			))
 			
 
@@ -828,6 +837,8 @@
 (material-squares fond img fond-color fond-color2))
 	(if (= backtype 25) 
 (material-emap fond img back-gradient))
+	(if (= backtype 26) 
+(material-pijama fond img back-gradient))
 
 		(if (= effect-back 1) ;Blur
 		(effect-blur fond img)			; Blur effect
@@ -1061,7 +1072,9 @@
 (material-squares basetext img color color2)
 		)
 	(if (= type 25) 
-(material-emap basetext img gradient)) 		
+(material-emap basetext img gradient))
+	(if (= type 26) 
+(material-pijama basetext img gradient))
 	
 		; Adding light effect on edge
 		(gimp-selection-none img)
