@@ -609,6 +609,8 @@
 		back-gradient
 		 back-gradient-type
 		 blendir
+		 vignette
+		 vignette-color
 		 applyMasks
 		
 
@@ -1255,6 +1257,24 @@
 			(gimp-layer-set-opacity refl (round (/ opacity 2)))
 		)
 		
+		    (if (= vignette TRUE)
+(begin
+            (gimp-image-select-ellipse
+            img
+            CHANNEL-OP-REPLACE
+            0
+	    0
+            (car (gimp-image-get-width img))
+           (car (gimp-image-get-height img))
+        )
+	(gimp-selection-invert img)
+    (gimp-selection-feather img (round (/ (car (gimp-image-get-width img)) 5 )))
+    (gimp-context-set-opacity 50)
+	(gimp-context-set-background vignette-color)
+    (gimp-drawable-edit-fill fond FILL-BACKGROUND)
+    		(gimp-selection-none img)
+))
+		
 		(if (= applyMasks TRUE) (begin
     		(gimp-layer-remove-mask border 0)
 		(gimp-layer-remove-mask olight 0)
@@ -1295,12 +1315,14 @@
 		back-gradient
 									          back-gradient-type
 							          blendir
+		vignette
+		vignette-color
 		applyMasks
 		)
 	(begin
 		(gimp-image-undo-disable img)
 		(gimp-layer-resize-to-image-size text-layer)
-		(apply-plastic-logo-effect img text-layer border-color border-size refl-color refl-dir shadow-color type effect-fill opacity color color2 pattern gradient gradient-type direction backtype effect-back fond-color fond-color2 back-pattern back-gradient back-gradient-type blendir applyMasks)
+		(apply-plastic-logo-effect img text-layer border-color border-size refl-color refl-dir shadow-color type effect-fill opacity color color2 pattern gradient gradient-type direction backtype effect-back fond-color fond-color2 back-pattern back-gradient back-gradient-type blendir vignette vignette-color applyMasks)
 		(gimp-image-undo-enable img)
 		(gimp-displays-flush)
 	)
@@ -1341,6 +1363,8 @@
   SF-GRADIENT   "Back Gradient" "Abstract 3"
     SF-ENUM "Back  Gradient Mode" '("GradientType" "gradient-linear")
   SF-OPTION		"Blend Direction" 		list-blend-ppf-dir
+  SF-TOGGLE  "Apply Vignette"    FALSE
+  	SF-COLOR		"Vignette Color"	'(0 0 0)
   SF-TOGGLE  "Apply Masks"    TRUE
 )
 
@@ -1384,6 +1408,8 @@
 		back-gradient
 											          back-gradient-type
 							          blendir
+		vignette
+		vignette-color
 		applyMasks
 	)
   
@@ -1440,7 +1466,7 @@
 
 		(gimp-image-undo-disable img)
 		(gimp-item-set-name text-layer text)
-		(apply-plastic-logo-effect img text-layer border-color border-size refl-color refl-dir shadow-color type effect-fill opacity color color2 pattern gradient gradient-type direction  backtype effect-back fond-color fond-color2 back-pattern back-gradient back-gradient-type blendir applyMasks)
+		(apply-plastic-logo-effect img text-layer border-color border-size refl-color refl-dir shadow-color type effect-fill opacity color color2 pattern gradient gradient-type direction  backtype effect-back fond-color fond-color2 back-pattern back-gradient back-gradient-type blendir vignette vignette-color applyMasks)
 
 		;(plug-in-waves 1 img text-layer 100 180 50 0 FALSE)
 		(gimp-image-undo-enable img)
@@ -1488,6 +1514,8 @@
 	SF-GRADIENT   "Back Gradient" "Abstract 3"
 	  SF-ENUM "Back Gradient Mode" '("GradientType" "gradient-linear")
   SF-OPTION		"Blend Direction" 		list-blend-ppf-dir
+    SF-TOGGLE  "Apply Vignette"    FALSE
+    	SF-COLOR		"Vignette Color"			'(0 0 0)
     SF-TOGGLE  "Apply Masks"    TRUE
 
 ) 
