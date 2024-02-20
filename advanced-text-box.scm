@@ -70,9 +70,10 @@ SF-ADJUSTMENT _"Outline"          '(0 0 20 1 10 0 0)
       (gimp-image-insert-layer theImage theLayer 0 0)
       (gimp-context-set-background '(255 255 255) )
       (gimp-context-set-foreground inTextColor)
-      (gimp-drawable-fill theLayer BACKGROUND-FILL)
+      (gimp-drawable-fill theLayer FILL-BACKGROUND)
       (set! theText
-                    (car
+      		 (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
+		                    (car
                           (gimp-text-fontname
                           theImage theLayer
                           0 0
@@ -82,6 +83,17 @@ SF-ADJUSTMENT _"Outline"          '(0 0 20 1 10 0 0)
                           inFontSize PIXELS
                           inFont)
                       )
+	
+                    (car
+                          (gimp-text-font
+                          theImage theLayer
+                          0 0
+                          inText
+                          0
+                          TRUE
+                          inFontSize
+                          inFont)
+                      ))
         )
 	;; text alignment
 	(gimp-text-layer-set-justification theText justification) ; Text Justification (Rev Value) 
@@ -89,8 +101,8 @@ SF-ADJUSTMENT _"Outline"          '(0 0 20 1 10 0 0)
 	(gimp-text-layer-set-line-spacing theText line-spacing)      ; Set Line Spacing
 
 
-      (set! theImageWidth   (car (gimp-drawable-width  theText) ) )
-      (set! theImageHeight  (car (gimp-drawable-height theText) ) )
+      (set! theImageWidth   (car (gimp-drawable-get-width  theText) ) )
+      (set! theImageHeight  (car (gimp-drawable-get-height theText) ) )
       (set! theBuffer (* theImageHeight (/ inBufferAmount 100) ) )
       (set! theImageHeight (+ theImageHeight theBuffer theBuffer) )
       (set! theImageWidth  (+ theImageWidth  theBuffer theBuffer) )
