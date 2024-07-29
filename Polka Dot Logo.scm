@@ -25,6 +25,14 @@
 ; Rel 0.01 - Initial Release
 ; Rel 0.02 - Bugfix that prevented it's use in 2.6 due to default plugin 'python-fu-foggify' pos. of output layer
 ; Rel 0.03 - Added a independant color option for the bevel
+;29 lug 2024 another step towards delirium and gimp 2.99
+
+; Fix code for gimp 2.99.6 working in 2.10
+(cond ((not (defined? 'gimp-drawable-get-width)) (define gimp-drawable-get-width gimp-drawable-width)))
+(cond ((not (defined? 'gimp-drawable-get-height)) (define gimp-drawable-get-height gimp-drawable-height)))
+(cond ((not (defined? 'gimp-drawable-get-offsets)) (define gimp-drawable-get-offsets gimp-drawable-offsets)))
+
+(cond ((not (defined? 'gimp-text-fontname)) (define (gimp-text-fontname fn1 fn2 fn3 fn4 fn5 fn6 fn7 fn8 PIXELS fn9) (gimp-text-font fn1 fn2 fn3 fn4 fn5 fn6 fn7 fn8 fn9))))
 ;
 (define list-blend-dir '("Left to Right" "Top to Bottom" "Diagonal"))
 ;
@@ -32,10 +40,10 @@
 (define (include-layer image newlayer oldlayer stack)	;stack 0=above 1=below
 	(cond ((defined? 'gimp-image-get-item-position) ;test for 2.8 compatability
             (gimp-image-insert-layer image newlayer (car (gimp-item-get-parent oldlayer)) 
-			(+ (car (gimp-image-get-layer-position image oldlayer)) stack))                                     ;For GIMP 2.8 
+			0 (+ (car (gimp-image-get-layer-position image oldlayer))  stack))                                     ;For GIMP 2.8 
           )
           (else
-           (gimp-image-add-layer image newlayer (+ (car (gimp-image-get-layer-position image oldlayer)) stack)) ;For GIMP 2.6 
+           (gimp-image-insert-layer image newlayer 0 (+ (car (gimp-image-get-layer-position image oldlayer)) stack)) ;For GIMP 2.6 
           )
     ) ;end cond
 ) ;end add layer procedure
@@ -61,10 +69,10 @@
   (let* (
          (image (car (gimp-image-new 256 256 RGB)))         
          (border (/ font-size 4))
-		 (font (if (> (string-length font-in) 0) font-in (car (gimp-context-get-font))))
+		 (font font-in)
          (size-layer (car (gimp-text-fontname image -1 0 0 text border TRUE font-size PIXELS font)))
-         (final-width (car (gimp-drawable-width size-layer)))
-         (final-height (car (gimp-drawable-height size-layer)))
+         (final-width (car (gimp-drawable-get-width size-layer)))
+         (final-height (car (gimp-drawable-get-height size-layer)))
          (text-layer 0)
          (width 0)
          (height 0)
@@ -89,7 +97,7 @@
     
 	(gimp-context-push)
 	(gimp-context-set-paint-method "gimp-paintbrush")
-	(if (= ver 2.8) (gimp-context-set-dynamics "Dynamics Off"))
+	(if (= ver 2.8) (gimp-context-set-dynamics "Pressure Opacity"))
 	(gimp-context-set-foreground '(189 189 189)) ;---------------------------------set text color here
 	(gimp-context-set-background '(255 255 255))
 	
@@ -97,8 +105,8 @@
     (gimp-text-layer-set-justification size-layer 2)
 	(gimp-text-layer-set-letter-spacing size-layer letter-spacing)
 	(gimp-text-layer-set-line-spacing size-layer line-spacing)
-    (set! final-width (car (gimp-drawable-width size-layer)))
-    (set! final-height (car (gimp-drawable-height size-layer)))	
+    (set! final-width (car (gimp-drawable-get-width size-layer)))
+    (set! final-height (car (gimp-drawable-get-height size-layer)))	
 
 ;;;;Add the text layer for a temporary larger Image size
     (set! text-layer (car (gimp-text-fontname image -1 0 0 text (round (/ 500 4)) TRUE 500 PIXELS font)))
@@ -108,14 +116,14 @@
 	(gimp-text-layer-set-letter-spacing text-layer letter-spacing)
 	(gimp-text-layer-set-line-spacing text-layer line-spacing)
 ;;;;set the new width and height	
-    (set! width (car (gimp-drawable-width text-layer)))
-    (set! height (car (gimp-drawable-height text-layer)))    
+    (set! width (car (gimp-drawable-get-width text-layer)))
+    (set! height (car (gimp-drawable-get-height text-layer)))    
     (gimp-image-remove-layer image size-layer)
     (gimp-image-resize-to-layers image)
 
-;;;;create selection-channel (gimp-selection-load selection-channel)
+;;;;create selection-channel (gimp-image-select-item img 2 selection-channel)
     (cond ((= ver 2.8) (gimp-image-select-item image 2 text-layer)) 
-	(else (gimp-selection-layer-alpha text-layer))
+	(else (gimp-image-select-item image 2 text-layer))
 	) ;endcond
     (set! selection-channel (car (gimp-selection-save image)))
 	(cond ((= ver 2.8) (gimp-item-set-name selection-channel "selection-channel"))
@@ -126,11 +134,11 @@
     
 ;;;;begin the script-----------------------------------------------------------------------------------
 ;;;;create the dots-bkg layer    
-	(set! dots-bkg-layer (car (gimp-layer-new image width height RGBA-IMAGE "Dots Bkg" 100 NORMAL-MODE)))
+	(set! dots-bkg-layer (car (gimp-layer-new image width height RGBA-IMAGE "Dots Bkg" 100 LAYER-MODE-NORMAL-LEGACY )))
 	(include-layer image dots-bkg-layer text-layer 1) ;stack 0=above 1=below
 
 	(gimp-context-set-background dots-color)
-	(gimp-drawable-fill dots-bkg-layer BACKGROUND-FILL)	
+	(gimp-drawable-fill dots-bkg-layer FILL-BACKGROUND)	
 	
 	(set! copy-layer (car (gimp-layer-copy dots-bkg-layer TRUE)))
 	(include-layer image copy-layer text-layer 0) ;stack 0=above 1=below
@@ -147,7 +155,7 @@
 							   0 ;blu-ang 
 							   0 ;blu-spotfn 
 							   15) ;oversample
-	(gimp-layer-set-mode copy-layer MULTIPLY-MODE)
+	(gimp-layer-set-mode copy-layer LAYER-MODE-MULTIPLY-LEGACY )
 	(gimp-image-set-active-layer image dots-bkg-layer)
 	;(python-fu-foggify 1 image dots-bkg-layer "Clouds" "White" 4.4 100)
 	;(set! cloud-layer (car (gimp-image-get-active-layer image)))
@@ -159,10 +167,10 @@
 	;(gimp-layer-set-mode cloud-layer SOFTLIGHT-MODE )
 	;(set! dots-bkg-layer (car (gimp-image-merge-down image cloud-layer EXPAND-AS-NECESSARY)))
 		
-	(set! stroke-layer (car (gimp-layer-new image width height RGBA-IMAGE "Stroke" 100 NORMAL-MODE)))
+	(set! stroke-layer (car (gimp-layer-new image width height RGBA-IMAGE "Stroke" 100 LAYER-MODE-NORMAL-LEGACY )))
 	(include-layer image stroke-layer text-layer 1) ;stack 0=above 1=below
 	(cond ((= ver 2.8) (gimp-image-select-item image 2 selection-channel))
-	(else (gimp-selection-load selection-channel))
+	(else (gimp-image-select-item image 2 selection-channel))
 	) ;endcond
 	(gimp-selection-grow image border-size)
 	(gimp-selection-invert image)
@@ -172,14 +180,14 @@
 	(else (gimp-selection-combine  selection-channel 1))
 	) ;endcond
 	(gimp-context-set-foreground bevel-color)
-	(gimp-drawable-edit-fill stroke-layer FOREGROUND-FILL)
+	(gimp-drawable-edit-fill stroke-layer FILL-FOREGROUND)
 	
 ;;;;create the mask	
 	(cond ((= ver 2.8) (gimp-image-select-item image 2 selection-channel))
-	(else (gimp-selection-load selection-channel))
+	(else (gimp-image-select-item image 2 selection-channel))
 	) ;endcond
 	
-	(set! copy-layer-mask (car (gimp-layer-create-mask copy-layer ADD-SELECTION-MASK)))
+	(set! copy-layer-mask (car (gimp-layer-create-mask copy-layer ADD-MASK-SELECTION)))
 	(gimp-layer-add-mask copy-layer copy-layer-mask)
 	(gimp-selection-none image)
 	(gimp-image-set-active-layer image text-layer)
@@ -213,7 +221,7 @@
 	
 	(gimp-layer-remove-mask copy-layer MASK-APPLY)
 	(cond ((= ver 2.8) (gimp-image-select-item image 2 selection-channel))
-	(else (gimp-selection-load selection-channel))
+	(else (gimp-image-select-item image 2 selection-channel))
 	) ;endcond
 	(set! noise-layer (car (gimp-layer-new image width height RGBA-IMAGE "Noise" 100 SOFTLIGHT-MODE)))
 	(include-layer image noise-layer copy-layer 0) ;stack 0=above 1=below
@@ -266,25 +274,25 @@
 ;;;;create the background layer    
 	
 	(cond ((not (= bkg-type 3))
-	(set! bkg-layer (car (gimp-layer-new image width height RGBA-IMAGE "Background" 100 NORMAL-MODE)))
+	(set! bkg-layer (car (gimp-layer-new image width height RGBA-IMAGE "Background" 100 LAYER-MODE-NORMAL-LEGACY )))
 	(include-layer image bkg-layer dots-bkg-layer 1) ;stack 0=above 1=below
     )
 	) ;endcond
 	(gimp-context-set-pattern pattern)
 	(gimp-context-set-background bkg-color)
 	(gimp-context-set-gradient gradient)
-	(if (= bkg-type 1) (gimp-drawable-fill bkg-layer PATTERN-FILL))		
-    (if (= bkg-type 0) (gimp-drawable-fill bkg-layer BACKGROUND-FILL))	
+	(if (= bkg-type 1) (gimp-drawable-fill bkg-layer FILL-PATTERN))		
+    (if (= bkg-type 0) (gimp-drawable-fill bkg-layer FILL-BACKGROUND))	
     (if (= bkg-type 2) 
 	(begin
 	(gimp-selection-none image)
-	(gimp-drawable-fill bkg-layer BACKGROUND-FILL)
+	(gimp-drawable-fill bkg-layer FILL-BACKGROUND)
     (if (= blendir 0) (set! x2 width))
 	(if (= blendir 1) (set! y2 height))
 	(if (= blendir 2) (begin
 	(set! x2 (/ width 2))
 	(set! y2 (/ height 2))))	
-	(gimp-edit-blend bkg-layer CUSTOM-MODE NORMAL-MODE gradient-type 100 0 REPEAT-NONE reverse FALSE 3 0.2 TRUE x1 y1 x2 y2)))
+	(gimp-edit-blend bkg-layer CUSTOM-MODE LAYER-MODE-NORMAL-LEGACY  gradient-type 100 0 REPEAT-NONE reverse FALSE 3 0.2 TRUE x1 y1 x2 y2)))
     
 ;;;;Scale Image to it's original size;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     (if (= conserve FALSE) (begin
@@ -366,11 +374,11 @@
 )
 
 (define (add-under-layer img newlayer oldlayer)
-  (gimp-image-add-layer img newlayer (+ (get-layer-pos img oldlayer) 1))
+  (gimp-image-insert-layer img newlayer 0 (+ (get-layer-pos img oldlayer) 1))
 )
 
 (define (add-over-layer img newlayer oldlayer)
-  (gimp-image-add-layer img newlayer (get-layer-pos img oldlayer))
+  (gimp-image-insert-layer img newlayer 0 (get-layer-pos img 0 oldlayer))
 )
 
 (define (draw-blurshape img drawable size initgrowth sel invert)
@@ -388,11 +396,11 @@
 	(set! currshade (math-round (* (/ (- size (+ i 1)) size) 255)))
 	(set! currshade (math-round (* (/ (+ i 1) size) 255)))
       )
-      (gimp-palette-set-foreground (list currshade currshade currshade))
+      (gimp-context-set-foreground (list currshade currshade currshade))
       (if (= (car (gimp-selection-is-empty img)) 0)
 	(gimp-drawable-edit-fill drawable 0)
       )
-      (gimp-selection-load sel)
+      (gimp-image-select-item img 2 sel)
       (set! k (- k 1))
       (set! i (+ i 1))
     )
@@ -443,11 +451,11 @@
   (gimp-image-undo-group-start img)
   (let* ((origfgcolor (car (gimp-context-get-foreground)))
 	 (origselection (car (gimp-selection-save img)))
-	 (drwwidth (car (gimp-drawable-width drawable)))
-	 (drwheight (car (gimp-drawable-height drawable)))
-	 (drwoffsets (gimp-drawable-offsets drawable))
+	 (drwwidth (car (gimp-drawable-get-width drawable)))
+	 (drwheight (car (gimp-drawable-get-height drawable)))
+	 (drwoffsets (gimp-drawable-get-offsets drawable))
 	 (layername (car (gimp-item-get-name drawable)))
-	 (imgtype (cond ((= (car (gimp-image-base-type img)) 0) 1) ((= (car (gimp-image-base-type img)) 1) 3)))
+	 (imgtype (cond ((= (car (gimp-image-get-base-type img)) 0) 1) ((= (car (gimp-image-get-base-type img)) 1) 3)))
 	 (lyrgrowamt (math-round (* size 1.2)))
 	 (bumpmaplayer 0)
 	 (highlightlayer 0)
@@ -513,17 +521,17 @@
     (gimp-layer-set-offsets shadowlayer (caddr layersize) (cadddr layersize))
     (gimp-layer-set-offsets highlightlayer (caddr layersize) (cadddr layersize))
     (gimp-selection-all img)
-    (gimp-palette-set-foreground highlightcolor)
+    (gimp-context-set-foreground highlightcolor)
     (gimp-drawable-edit-fill highlightlayer 0)
-    (gimp-palette-set-foreground shadowcolor)
+    (gimp-context-set-foreground shadowcolor)
     (gimp-drawable-edit-fill shadowlayer 0)
-    (gimp-palette-set-foreground '(0 0 0))
+    (gimp-context-set-foreground '(0 0 0))
     (gimp-drawable-edit-fill bumpmaplayer 0)
     (set! highlightmask (car (gimp-layer-create-mask highlightlayer 1)))
     (set! shadowmask (car (gimp-layer-create-mask shadowlayer 1)))
     (gimp-layer-add-mask highlightlayer highlightmask)
     (gimp-layer-add-mask shadowlayer shadowmask)
-    (gimp-selection-layer-alpha drawable)
+    (gimp-image-select-item img 2 drawable)
     (if (> (car (gimp-layer-get-mask drawable)) -1)
        (gimp-selection-combine (car (gimp-layer-get-mask drawable)) 3)
     )
@@ -546,7 +554,7 @@
 	  (set! halfsizef (floor (/ size 2)))
 	  (set! halfsizec (- size halfsizef))
 	  (gimp-selection-all img)
-	  (gimp-palette-set-foreground '(255 255 255))
+	  (gimp-context-set-foreground '(255 255 255))
 	  (gimp-drawable-edit-fill bumpmaplayer 0)
 	  (draw-blurshape img bumpmaplayer halfsizec halfsizec alphaSel 1)
 	  (draw-blurshape img bumpmaplayer halfsizef 0 alphaSel 0)
@@ -554,7 +562,7 @@
       )
     )
     (gimp-selection-all img)
-    (gimp-palette-set-foreground '(127 127 127))
+    (gimp-context-set-foreground '(127 127 127))
     (gimp-drawable-edit-fill highlightmask 0)
     (gimp-selection-none img)
     (if (> surfacecontour 0)
@@ -576,7 +584,7 @@
     (gimp-channel-combine-masks shadowmask highlightmask 2 0 0)
     (gimp-levels highlightmask 0 127 255 1.0 0 255)
     (gimp-levels shadowmask 0 0 127 1.0 255 0)
-    (gimp-selection-load alphaSel)
+    (gimp-image-select-item img 2 alphaSel)
     (if (= style 0)
       (gimp-selection-grow img size)
       (if (or (= style 2) (= style 3))
@@ -584,7 +592,7 @@
       )
     )
     (gimp-selection-invert img)
-    (gimp-palette-set-foreground '(0 0 0))
+    (gimp-context-set-foreground '(0 0 0))
     (gimp-drawable-edit-fill shadowmask 0)
     (gimp-selection-none img)
     (gimp-image-remove-layer img bumpmaplayer)
@@ -619,8 +627,8 @@
 	)
       )
     )
-    (gimp-palette-set-foreground origfgcolor)
-    (gimp-selection-load origselection)
+    (gimp-context-set-foreground origfgcolor)
+    (gimp-image-select-item img 2 origselection)
     (gimp-image-remove-channel img alphaSel)
     (gimp-image-remove-channel img origselection)
     (gimp-displays-flush)
@@ -644,14 +652,14 @@
   (gimp-image-undo-group-start img)
   (let* ((origfgcolor (car (gimp-context-get-foreground)))
 	 (origselection (car (gimp-selection-save img)))
-	 (drwwidth (car (gimp-drawable-width drawable)))
-	 (drwheight (car (gimp-drawable-height drawable)))
-	 (drwoffsets (gimp-drawable-offsets drawable))
+	 (drwwidth (car (gimp-drawable-get-width drawable)))
+	 (drwheight (car (gimp-drawable-get-height drawable)))
+	 (drwoffsets (gimp-drawable-get-offsets drawable))
 	 (layername (car (gimp-item-get-name drawable)))
 	 (growamt (math-ceil (/ size 2)))
 	 (steps (math-round (- size (* (/ spread 100) size))))
 	 (lyrgrowamt (math-round (* growamt 1.2)))
-	 (shadowlayer (car (gimp-layer-new img (+ drwwidth (* lyrgrowamt 2)) (+ drwheight (* lyrgrowamt 2)) (cond ((= (car (gimp-image-base-type img)) 0) 1) ((= (car (gimp-image-base-type img)) 1) 3)) (string-append layername "-dropshadow") opacity (get-blending-mode mode))))
+	 (shadowlayer (car (gimp-layer-new img (+ drwwidth (* lyrgrowamt 2)) (+ drwheight (* lyrgrowamt 2)) (cond ((= (car (gimp-image-get-base-type img)) 0) 1) ((= (car (gimp-image-get-base-type img)) 1) 3)) (string-append layername "-dropshadow") opacity (get-blending-mode mode))))
 	 (shadowmask 0)
 	 (alphaSel 0)
 	 (ang (* (* (+ offsetangle 180) -1) (/ (* 4 (atan 1.0)) 180)))
@@ -662,12 +670,12 @@
     (add-under-layer img shadowlayer drawable)
     (gimp-layer-set-offsets shadowlayer (- (+ (car drwoffsets) offsetX) lyrgrowamt) (- (+ (cadr drwoffsets) offsetY) lyrgrowamt))
     (gimp-selection-all img)
-    (gimp-palette-set-foreground color)
+    (gimp-context-set-foreground color)
     (gimp-drawable-edit-fill shadowlayer 0)
     (gimp-selection-none img)
     (set! shadowmask (car (gimp-layer-create-mask shadowlayer 1)))
     (gimp-layer-add-mask shadowlayer shadowmask)
-    (gimp-selection-layer-alpha drawable)
+    (gimp-image-select-item img 2 drawable)
     (if (> (car (gimp-layer-get-mask drawable)) -1)
       (gimp-selection-combine (car (gimp-layer-get-mask drawable)) 3)
     )
@@ -678,10 +686,10 @@
     (if (> contour 0)
       (begin
 	(apply-contour shadowmask 0 contour)
-	(gimp-selection-load alphaSel)
+	(gimp-image-select-item img 2 alphaSel)
 	(gimp-selection-grow img growamt)
 	(gimp-selection-invert img)
-	(gimp-palette-set-foreground '(0 0 0))
+	(gimp-context-set-foreground '(0 0 0))
 	(gimp-drawable-edit-fill shadowmask 0)
 	(gimp-selection-none img)
       )
@@ -691,8 +699,8 @@
     )
     (if (= knockout 1)
       (begin
-	(gimp-palette-set-foreground '(0 0 0))
-	(gimp-selection-layer-alpha drawable)
+	(gimp-context-set-foreground '(0 0 0))
+	(gimp-image-select-item img 2 drawable)
 	(gimp-drawable-edit-fill shadowmask 0)
       )
     )
@@ -708,8 +716,8 @@
 	(gimp-item-set-name shadowlayer layername)
       )
     )
-    (gimp-palette-set-foreground origfgcolor)
-    (gimp-selection-load origselection)
+    (gimp-context-set-foreground origfgcolor)
+    (gimp-image-select-item img 2 origselection)
     (gimp-image-remove-channel img alphaSel)
     (gimp-image-remove-channel img origselection)
     (gimp-displays-flush)
@@ -733,11 +741,11 @@
   (gimp-image-undo-group-start img)
   (let* ((origfgcolor (car (gimp-context-get-foreground)))
 	 (origselection (car (gimp-selection-save img)))
-	 (drwwidth (car (gimp-drawable-width drawable)))
-	 (drwheight (car (gimp-drawable-height drawable)))
+	 (drwwidth (car (gimp-drawable-get-width drawable)))
+	 (drwheight (car (gimp-drawable-get-height drawable)))
 	 (layername (car (gimp-item-get-name drawable)))
-	 (drwoffsets (gimp-drawable-offsets drawable))
-	 (shadowlayer (car (gimp-layer-new img drwwidth drwheight (cond ((= (car (gimp-image-base-type img)) 0) 1) ((= (car (gimp-image-base-type img)) 1) 3)) (string-append layername "-innershadow") opacity (get-blending-mode mode))))
+	 (drwoffsets (gimp-drawable-get-offsets drawable))
+	 (shadowlayer (car (gimp-layer-new img drwwidth drwheight (cond ((= (car (gimp-image-get-base-type img)) 0) 1) ((= (car (gimp-image-get-base-type img)) 1) 3)) (string-append layername "-innershadow") opacity (get-blending-mode mode))))
 	 (shadowmask 0)
 	 (alphaSel 0)
 	 (growamt (math-ceil (/ size 2)))
@@ -752,12 +760,12 @@
     (add-over-layer img shadowlayer drawable)
     (gimp-layer-set-offsets shadowlayer (car drwoffsets) (cadr drwoffsets))
     (gimp-selection-all img)
-    (gimp-palette-set-foreground color)
+    (gimp-context-set-foreground color)
     (gimp-drawable-edit-fill shadowlayer 0)
     (gimp-selection-none img)
     (set! shadowmask (car (gimp-layer-create-mask shadowlayer 1)))
     (gimp-layer-add-mask shadowlayer shadowmask)
-    (gimp-selection-layer-alpha drawable)
+    (gimp-image-select-item img 2 drawable)
     (if (> (car (gimp-layer-get-mask drawable)) -1)
       (gimp-selection-combine (car (gimp-layer-get-mask drawable)) 3)
     )
@@ -766,9 +774,9 @@
     (if (= source 0)
       (begin
 	(gimp-selection-all img)
-	(gimp-palette-set-foreground '(255 255 255))
+	(gimp-context-set-foreground '(255 255 255))
 	(gimp-drawable-edit-fill shadowmask 0)
-	(gimp-selection-load alphaSel)
+	(gimp-image-select-item img 2 alphaSel)
 	(draw-blurshape img shadowmask steps (- growamt chokeamt) alphaSel 1)
       )
       (draw-blurshape img shadowmask steps (- growamt chokeamt) alphaSel 0)
@@ -779,9 +787,9 @@
     )
     (if (= merge 0)
       (begin
-	(gimp-selection-layer-alpha drawable)
+	(gimp-image-select-item img 2 drawable)
 	(gimp-selection-invert img)
-	(gimp-palette-set-foreground '(0 0 0))
+	(gimp-context-set-foreground '(0 0 0))
 	(gimp-drawable-edit-fill shadowmask 0)
       )
     )
@@ -825,8 +833,8 @@
       )
     )
     (gimp-selection-none img)
-    (gimp-palette-set-foreground origfgcolor)
-    (gimp-selection-load origselection)
+    (gimp-context-set-foreground origfgcolor)
+    (gimp-image-select-item img 2 origselection)
     (gimp-image-remove-channel img alphaSel)
     (gimp-image-remove-channel img origselection)
     (gimp-displays-flush)
