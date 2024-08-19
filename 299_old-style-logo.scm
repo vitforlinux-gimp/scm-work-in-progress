@@ -8,17 +8,10 @@
 ;;Old Style Logo based on Scanner Logo 2.10 rel 0.01
 ;;by vitforlinux
 ;;
-; Fix code for gimp 2.99.6 working in 2.10
-(cond ((not (defined? 'gimp-drawable-get-width)) (define gimp-drawable-get-width gimp-drawable-width)))
-(cond ((not (defined? 'gimp-drawable-get-height)) (define gimp-drawable-get-height gimp-drawable-height)))
-(cond ((not (defined? 'gimp-image-get-width)) (define gimp-image-get-width gimp-image-width)))
-(cond ((not (defined? 'gimp-image-get-height)) (define gimp-image-get-height gimp-image-height)))
 
 
-(cond ((not (defined? 'gimp-text-fontname)) (define (gimp-text-fontname fn1 fn2 fn3 fn4 fn5 fn6 fn7 fn8 PIXELS fn9) (gimp-text-font fn1 fn2 fn3 fn4 fn5 fn6 fn7 fn8 fn9))))
 
-
-(define (script-fu-old-style-logo299 text size font justification letter-spacing line-spacing text-color  use-second-col? text-color2 use-gradient?  text-gradient cut-color bg-color second 45deg worn shadow vignette conserve)
+(define (script-fu-old-style-logo-299 text size font justification letter-spacing line-spacing text-color  use-second-col? text-color2 use-gradient?  text-gradient cut-color bg-color second 45deg worn shadow vignette conserve)
   (let* ((img (car (gimp-image-new 256 256 RGB)))
 	 (text-layer (car (gimp-text-fontname img -1 0 0 text 10 TRUE size PIXELS font)))
 	 (width (car (gimp-drawable-get-width text-layer)))
@@ -55,8 +48,9 @@
    (gimp-layer-add-mask text-layer textmask)
 
 	 (plug-in-solid-noise 1 img textmask FALSE TRUE 0 1 4 4)
-	 		(gimp-drawable-brightness-contrast textmask 0.9 0.9 )
+	 		(gimp-drawable-brightness-contrast textmask 0.5 0.5 )
 			(plug-in-gauss-iir TRUE img textmask 6 TRUE TRUE)
+			(gimp-drawable-invert textmask TRUE)
 ))
 
 
@@ -78,7 +72,7 @@
 
     (gimp-image-select-item img 2 text-layer)
     (gimp-context-set-background '(0 0 0))
-    (gimp-selection-feather img 7.5)
+    ;(gimp-selection-feather img 7.5)
     (gimp-layer-resize-to-image-size shadow-layer)
     (gimp-drawable-edit-fill shadow-layer FILL-BACKGROUND)
     (gimp-selection-none img)
@@ -109,31 +103,34 @@
     (if (= second 1)
     (begin
     (gimp-image-select-item img 2 text-layer)
-    
+    (gimp-layer-set-lock-alpha text-layer FALSE)
    ; (gimp-context-set-gradient (caadr (gimp-gradients-get-list "")))
    (gimp-selection-shrink img (round (/ size 20)) )
    (gimp-drawable-edit-clear text-layer)
-    (gimp-context-set-background text-color)
-     (gimp-context-set-foreground text-color2 )
+    (gimp-selection-grow img 1 )
+    (gimp-context-set-background text-color2)
+     (gimp-context-set-foreground text-color )
   ; (gimp-context-set-gradient "Da pp a sf (bordi netti)")
  ; (gimp-context-set-gradient _"FG to BG (Hardedge)")
   ;(gimp-context-set-pattern (list-ref (cadr (gimp-patterns-get-list "")) 0)) 
   ;(list-ref (cadr (gimp-gradients-get-list "")) 1)
-  (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
-(gimp-context-set-gradient (list-ref (cadr (gimp-gradients-get-list "")) 1)); ex work
-(gimp-context-set-gradient (car (gimp-gradient-get-by-name (list-ref (car (gimp-gradients-get-list "")) 4))) ))
+;(gimp-context-set-gradient (list-ref (cadr (gimp-gradients-get-list "")) 1))
+			(if (= use-second-col? FALSE)	(begin (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10) 
+		(gimp-context-set-gradient (list-ref (cadr (gimp-gradients-get-list "")) 6)) 
+		(gimp-context-set-gradient (car (gimp-gradient-get-by-name(list-ref (car (gimp-gradients-get-list "")) 6)))) )) 
+		(begin (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10) 
+		(gimp-context-set-gradient (list-ref (cadr (gimp-gradients-get-list "")) 1)) 
+		(gimp-context-set-gradient (car (gimp-gradient-get-by-name(list-ref (car (gimp-gradients-get-list "")) 4)))) )))
  
   ;(gimp-context-set-gradient "Abstract 1")
  ; (gimp-context-set-paint-mode LAYER-MODE-COLOR-ERASE-LEGACY)
   (gimp-context-set-gradient-repeat-mode REPEAT-SAWTOOTH)
   (if (= 45deg TRUE)     (gimp-drawable-edit-gradient-fill text-layer 0 0 TRUE 1 0 TRUE 0 0 (round (/ size 20)) (round (/ size 20)))
     (gimp-drawable-edit-gradient-fill text-layer 0 0 TRUE 1 0 TRUE 0 0 0 (round (/ size 20))))
-   ; (gimp-by-color-select text-layer text-color2 127 2 FALSE FALSE 0 FALSE)
-   (gimp-image-select-color img 2 text-layer text-color )
-  ; (gimp-selection-feather img 1)
+    ;(gimp-by-color-select text-layer text-color2 127 2 FALSE FALSE 0 FALSE)
     (gimp-layer-set-lock-alpha text-layer FALSE)
-    (gimp-selection-invert img);(gimp-selection-feather img 2)
-    (if (= use-second-col? FALSE) (gimp-drawable-edit-clear text-layer))
+    ;(gimp-selection-invert img)
+    ;(if (= use-second-col? FALSE) (gimp-drawable-edit-clear text-layer))
     
    
     ))
@@ -144,24 +141,26 @@
     
    ; (gimp-context-set-gradient (caadr (gimp-gradients-get-list "")))
    (gimp-selection-shrink img (round (/ size 33)) )
+   (gimp-layer-set-lock-alpha text-layer FALSE)
    (gimp-drawable-edit-clear text-layer)
-    (gimp-context-set-background text-color)
-     (gimp-context-set-foreground text-color2 )
+   (gimp-selection-grow img 1 )
+    (gimp-context-set-background text-color2)
+     (gimp-context-set-foreground text-color )
 ;(gimp-context-set-gradient (list-ref (cadr (gimp-gradients-get-list "")) 1))
-  (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
-(gimp-context-set-gradient (list-ref (cadr (gimp-gradients-get-list "")) 1)); ex work
-(gimp-context-set-gradient (car (gimp-gradient-get-by-name (list-ref (car (gimp-gradients-get-list "")) 4))) ))
+			(if (= use-second-col? FALSE)	(begin (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10) 
+		(gimp-context-set-gradient (list-ref (cadr (gimp-gradients-get-list "")) 6)) 
+		(gimp-context-set-gradient (car (gimp-gradient-get-by-name(list-ref (car (gimp-gradients-get-list "")) 6)))) )) 
+		(begin (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10) 
+		(gimp-context-set-gradient (list-ref (cadr (gimp-gradients-get-list "")) 1)) 
+		(gimp-context-set-gradient (car (gimp-gradient-get-by-name(list-ref (car (gimp-gradients-get-list "")) 4)))) )))
   (gimp-context-set-gradient-repeat-mode REPEAT-SAWTOOTH)
       (if (= 45deg TRUE)     (gimp-drawable-edit-gradient-fill text-layer 0 0 TRUE 1 0 TRUE 0 0 (round (/ size 33)) (round (/ size 33)))
     (gimp-drawable-edit-gradient-fill text-layer 0 0 TRUE 1 0 TRUE 0 0 0 (round (/ size 33))))
     ;(gimp-by-color-select text-layer text-color2 127 2 FALSE FALSE 0 FALSE)
-       ;(gimp-image-select-color img 2 text-layer text-color2 )
     (gimp-layer-set-lock-alpha text-layer FALSE)
-    ;(plug-in-colortoalpha 1 img text-layer text-color)
-  ;(if (= use-second-col? FALSE) ;(gimp-drawable-edit-clear text-layer)
-  ;)
+  ;(if (= use-second-col? FALSE) (gimp-drawable-edit-clear text-layer))
     
-
+   
     ))
     ;light
         (if (= second 3)
@@ -173,8 +172,8 @@
      (gimp-context-set-foreground text-color2 )
   (gimp-context-set-gradient-repeat-mode REPEAT-SAWTOOTH)
     (gimp-layer-set-lock-alpha text-layer FALSE)
- (if (= use-second-col? FALSE) (gimp-drawable-edit-clear text-layer))
-  (if (= use-second-col? TRUE) (gimp-drawable-edit-fill text-layer FILL-FOREGROUND))
+ ;(if (= use-second-col? FALSE) (gimp-drawable-edit-clear text-layer))
+ ; (if (= use-second-col? TRUE) (gimp-drawable-edit-fill text-layer FILL-FOREGROUND))
     )
     )
             (if (= use-gradient? TRUE)
@@ -184,8 +183,10 @@
 (gimp-context-set-paint-mode LAYER-MODE-NORMAL-LEGACY)
 	  (gimp-context-set-gradient text-gradient)
 	 ; (gimp-blend text-layer BLEND-CUSTOM LAYER-MODE-NORMAL-LEGACY GRADIENT-RADIAL 100 20 REPEAT-NONE FALSE 0 0 0 0 0 0 width height)
-	   (if (= use-second-col? TRUE)    (gimp-image-select-color img 2 text-layer text-color2 ));(gimp-by-color-select text-layer text-color 127 2 TRUE FALSE 0 FALSE))
-	(gimp-drawable-edit-gradient-fill text-layer 2 20 1 1 0.0 FALSE 0 0 width height)
+	   (if (= use-second-col? TRUE) ;(gimp-by-color-select text-layer text-color 127 2 TRUE FALSE 0 FALSE)
+	   (gimp-image-select-color img 2 text-layer text-color))
+	   (gimp-selection-feather img 1)
+	(gimp-drawable-edit-gradient-fill text-layer 2 20 REPEAT-NONE 1 0.0 FALSE 0 0 width height)
 	))
 	(gimp-selection-none img)
    ; (gimp-layer-set-lock-alpha text-layer FALSE)
@@ -221,7 +222,7 @@
     (gimp-image-undo-enable img)
     (gimp-display-new img)))
 
-(script-fu-register "script-fu-old-style-logo299"
+(script-fu-register "script-fu-old-style-logo-299"
 		    "Old Style Logo 299"
 		    "Creates a old stile logo with a gradient text, a shadow and a cut side, pseudo vignette effect"
 		    "vitforlinux-gimp.github.com"
@@ -250,7 +251,7 @@
 		    )
 
 (script-fu-menu-register
-	"script-fu-old-style-logo299"
+	"script-fu-old-style-logo-299"
 	; "<Toolbox>/Xtns/Logos"
 	"<Image>/File/Create/Logos"
 )
