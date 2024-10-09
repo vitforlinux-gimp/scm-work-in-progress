@@ -1,5 +1,3 @@
-;Modernized with ModernizeMatic8 for Gimp 2.10.28 by vitforlinux.wordpress.com - dont remove
-
 ; The GIMP -- an image manipulation program
 ; Copyright (C) 1995 Spencer Kimball and Peter Mattis
 ;
@@ -28,10 +26,6 @@
 ; or for more than one picture
 ; gimp -i -b '(elsamuko-national-geographic-next-gen-batch "*.jpg" 60 1 60 25 0.4 1 0)' -b '(gimp-quit 0)'
 
-; Fix code for gimp 2.99.6 working in 2.10
-(cond ((not (defined? 'gimp-image-get-width)) (define gimp-image-get-width gimp-image-width)))
-(cond ((not (defined? 'gimp-image-get-height)) (define gimp-image-get-height gimp-image-height)))
-
 (define (elsamuko-national-geographic-next-gen aimg adraw shadowopacity
                                       sharpness screenopacity
                                       overlayopacity localcontrast
@@ -52,9 +46,10 @@
          (MaskImage (car (gimp-image-duplicate aimg)))
          (MaskLayer (cadr (gimp-image-get-layers MaskImage)))
          (OrigLayer (cadr (gimp-image-get-layers aimg)))
-		(HSVImage (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
+         ;(HSVImage (car (plug-in-decompose TRUE aimg adraw "Value" TRUE)))
+	 		(HSVImage (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
           (car (plug-in-decompose TRUE aimg adraw "Value" TRUE))
-          (car (plug-in-decompose 0 aimg 1 (vector adraw) "rgb" TRUE FALSE)) ;2.99.19
+          (car (plug-in-decompose 1 aimg 1 (vector adraw) "rgb" TRUE FALSE)) ;2.99.19
 ))
          (HSVLayer (cadr (gimp-image-get-layers HSVImage)))
          (SharpenLayer (car (gimp-layer-copy adraw TRUE)))
@@ -78,7 +73,9 @@
          (let* ((ShadowMask (car (gimp-layer-create-mask ShadowLayer ADD-MASK-WHITE))))
            (gimp-layer-add-mask ShadowLayer ShadowMask)
            (gimp-selection-all img)
-           (gimp-edit-copy ShadowLayer)
+	   (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
+	   (gimp-edit-copy ShadowLayer)
+           (gimp-edit-copy 1 (vector ShadowLayer)))
            (gimp-floating-sel-anchor (car (gimp-edit-paste ShadowMask TRUE)))
            )
          (gimp-layer-set-mode ShadowLayer LAYER-MODE-OVERLAY-LEGACY)
@@ -92,7 +89,9 @@
        (begin
          (gimp-image-insert-layer img SharpenLayer 0 -1)
          (gimp-selection-all HSVImage)
-         (gimp-edit-copy (aref HSVLayer 0))
+	(if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
+	(gimp-edit-copy (aref HSVLayer 0))
+         (gimp-edit-copy 1 (vector (aref HSVLayer 0))))
          (gimp-image-delete HSVImage)
          (gimp-floating-sel-anchor (car (gimp-edit-paste SharpenLayer FALSE)))
          (gimp-layer-set-mode SharpenLayer VALUE-MODE)
@@ -104,7 +103,9 @@
                 )
            (gimp-layer-add-mask SharpenLayer SharpenChannel)
            (gimp-selection-all MaskImage)
-           (gimp-edit-copy (aref MaskLayer 0))
+	   (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
+	   (gimp-edit-copy 1 (vector (aref MaskLayer 0))
+           (gimp-edit-copy 1 (vector (aref MaskLayer 0)))))
            (gimp-floating-sel-anchor (car (gimp-edit-paste SharpenChannel FALSE)))
            (gimp-image-delete MaskImage)
            (plug-in-unsharp-mask TRUE img SharpenLayer 1 sharpness 0)
@@ -171,17 +172,17 @@
     ;red
     (if(= tint 1)
        (begin
-         (gimp-drawable-colorize-hsl screenlayer   0 25 0)
-         (gimp-drawable-colorize-hsl overlaylayer  0 25 0)
-         (gimp-drawable-colorize-hsl overlaylayer2 0 25 0)
+         (gimp-colorize screenlayer   0 25 0)
+         (gimp-colorize overlaylayer  0 25 0)
+         (gimp-colorize overlaylayer2 0 25 0)
          )
        )
     ;blue
     (if(= tint 2)
        (begin
-         (gimp-drawable-colorize-hsl screenlayer   225 25 0)
-         (gimp-drawable-colorize-hsl overlaylayer  225 25 0)
-         (gimp-drawable-colorize-hsl overlaylayer2 225 25 0)
+         (gimp-colorize screenlayer   225 25 0)
+         (gimp-colorize overlaylayer  225 25 0)
+         (gimp-colorize overlaylayer2 225 25 0)
          )
        )
     
