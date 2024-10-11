@@ -17,7 +17,7 @@
 ; http://www.gnu.org/licenses/gpl-3.0.html
 ;
 ; Copyright (C) 2008 elsamuko <elsamuko@web.de>
-;
+; 2024 ott 11  fix for 2.99.19 vitforlinux
 ; Version 0.1 - Simulate a high quality photo like these from the National Geographic
 ;               Thanks to Martin Egger <martin.egger@gmx.net> for the shadow revovery and the sharpen script
 ;
@@ -25,6 +25,14 @@
 ; gimp -i -b '(elsamuko-national-geographic-next-gen-batch "picture.jpg" 60 1 60 25 0.4 1 0)' -b '(gimp-quit 0)'
 ; or for more than one picture
 ; gimp -i -b '(elsamuko-national-geographic-next-gen-batch "*.jpg" 60 1 60 25 0.4 1 0)' -b '(gimp-quit 0)'
+
+; Fix code for gimp 2.99.6 working in 2.10
+
+(cond ((not (defined? 'gimp-image-get-width)) (define gimp-image-get-width gimp-image-width)))
+(cond ((not (defined? 'gimp-image-get-height)) (define gimp-image-get-height gimp-image-height)))
+
+
+
 
 (define (elsamuko-national-geographic-next-gen aimg adraw shadowopacity
                                       sharpness screenopacity
@@ -48,7 +56,7 @@
          (OrigLayer (cadr (gimp-image-get-layers aimg)))
          ;(HSVImage (car (plug-in-decompose TRUE aimg adraw "Value" TRUE)))
 	 		(HSVImage (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
-          (car (plug-in-decompose TRUE aimg adraw "Value" TRUE))
+          (car (plug-in-decompose TRUE aimg adraw "RGB" TRUE))
           (car (plug-in-decompose 1 aimg 1 (vector adraw) "rgb" TRUE FALSE)) ;2.99.19
 ))
          (HSVLayer (cadr (gimp-image-get-layers HSVImage)))
@@ -74,9 +82,17 @@
            (gimp-layer-add-mask ShadowLayer ShadowMask)
            (gimp-selection-all img)
 	   (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
-           (gimp-edit-copy ShadowLayer)
-           (gimp-edit-copy 1 (vector ShadowLayer)))
-           (gimp-floating-sel-anchor (car (gimp-edit-paste ShadowMask TRUE)))
+           (begin (gimp-edit-copy ShadowLayer)
+	   (gimp-floating-sel-anchor (car (gimp-edit-paste ShadowMask TRUE))))
+           (begin (gimp-edit-copy 1 (vector ShadowLayer))
+	   	       (let* (
+           (pasted (gimp-edit-paste ShadowMask FALSE))
+           (num-pasted (car pasted))
+           (floating-sel (aref (cadr pasted) (- num-pasted 1)))
+          )
+     (gimp-floating-sel-anchor floating-sel)
+    )))
+           ;(gimp-floating-sel-anchor (car (gimp-edit-paste ShadowMask TRUE)))
            )
          (gimp-layer-set-mode ShadowLayer LAYER-MODE-OVERLAY-LEGACY)
          (gimp-layer-set-opacity ShadowLayer shadowopacity)
@@ -90,11 +106,21 @@
          (gimp-image-insert-layer img SharpenLayer 0 -1)
          (gimp-selection-all HSVImage)
 	(if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
-         (gimp-edit-copy (aref HSVLayer 0))
-         (gimp-edit-copy 1 (vector (aref HSVLayer 0))))
+         (begin(gimp-edit-copy (aref HSVLayer 0))
+	 (gimp-floating-sel-anchor (car (gimp-edit-paste SharpenLayer FALSE))))
+         (gimp-edit-copy 1 (vector (aref HSVLayer 0)))
+	     ; Clipboard is copy of mask-drawable.  Paste into mask, a channel, and anchor it.
+    (begin (let* (
+           (pasted (gimp-edit-paste SharpenLayer FALSE))
+           (num-pasted (car pasted))
+           (floating-sel (aref (cadr pasted) (- num-pasted 1)))
+          )
+     (gimp-floating-sel-anchor floating-sel)
+    )))
          (gimp-image-delete HSVImage)
-         (gimp-floating-sel-anchor (car (gimp-edit-paste SharpenLayer FALSE)))
-         (gimp-layer-set-mode SharpenLayer VALUE-MODE)
+	 
+         ;(gimp-floating-sel-anchor (car (gimp-edit-paste SharpenLayer FALSE)))
+         (gimp-layer-set-mode SharpenLayer LAYER-MODE-HSV-VALUE-LEGACY)
          (plug-in-edge TRUE MaskImage (aref MaskLayer 0) 6 1 0)
         ; (gimp-levels-stretch (aref MaskLayer 0))
          (gimp-image-convert-grayscale MaskImage)
@@ -104,9 +130,17 @@
            (gimp-layer-add-mask SharpenLayer SharpenChannel)
            (gimp-selection-all MaskImage)
 	   (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
-	   (gimp-edit-copy (aref MaskLayer 0))
-           (gimp-edit-copy 1 (vector (aref MaskLayer 0))))
-           (gimp-floating-sel-anchor (car (gimp-edit-paste SharpenChannel FALSE)))
+	   (begin (gimp-edit-copy (aref MaskLayer 0))
+	   (gimp-floating-sel-anchor (car (gimp-edit-paste SharpenChannel FALSE))))
+           (begin (gimp-edit-copy 1 (vector (aref MaskLayer 0)))
+           ;(gimp-floating-sel-anchor (car (gimp-edit-paste SharpenChannel FALSE)))
+	       (let* (
+           (pasted (gimp-edit-paste SharpenChannel FALSE))
+           (num-pasted (car pasted))
+           (floating-sel (aref (cadr pasted) (- num-pasted 1)))
+          )
+     (gimp-floating-sel-anchor floating-sel)
+    )))
            (gimp-image-delete MaskImage)
            (plug-in-unsharp-mask TRUE img SharpenLayer 1 sharpness 0)
            (gimp-layer-set-opacity SharpenLayer 80)
@@ -172,17 +206,17 @@
     ;red
     (if(= tint 1)
        (begin
-         (gimp-colorize screenlayer   0 25 0)
-         (gimp-colorize overlaylayer  0 25 0)
-         (gimp-colorize overlaylayer2 0 25 0)
+         (gimp-drawable-colorize-hsl screenlayer   0 25 0)
+         (gimp-drawable-colorize-hsl overlaylayer  0 25 0)
+         (gimp-drawable-colorize-hsl overlaylayer2 0 25 0)
          )
        )
     ;blue
     (if(= tint 2)
        (begin
-         (gimp-colorize screenlayer   225 25 0)
-         (gimp-colorize overlaylayer  225 25 0)
-         (gimp-colorize overlaylayer2 225 25 0)
+         (gimp-drawable-colorize-hsl screenlayer   225 25 0)
+         (gimp-drawable-colorize-hsl overlaylayer  225 25 0)
+         (gimp-drawable-colorize-hsl overlaylayer2 225 25 0)
          )
        )
     
