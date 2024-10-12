@@ -17,10 +17,15 @@
 ; http://www.gnu.org/licenses/gpl-3.0.html
 ;
 ; Copyright (C) 2008 elsamuko <elsamuko@web.de>
-;
+; 12 ott 2024 Fix for 2.99.19 vitforlinux
 ; Version 0.1 - Simulating the 3 color technicolor technique
 ; 
 ;
+; Fix code for gimp 2.99.6 working in 2.10
+
+(cond ((not (defined? 'gimp-image-get-width)) (define gimp-image-get-width gimp-image-width)))
+(cond ((not (defined? 'gimp-image-get-height)) (define gimp-image-get-height gimp-image-height)))
+
 
 (define (elsamuko-technicolor-3-color-next-gen aimg adraw
                                       redpart   ;redintensity
@@ -32,8 +37,8 @@
                                       retro
                                       extra)
   (let* ((img          (car (gimp-item-get-image adraw)))
-         (owidth       (car (gimp-image-width img)))
-         (oheight      (car (gimp-image-height img)))
+         (owidth       (car (gimp-image-get-width img)))
+         (oheight      (car (gimp-image-get-height img)))
          (sharpenlayer (car (gimp-layer-copy adraw FALSE)))
          (floatingsel  0)
          
