@@ -122,7 +122,7 @@
          ;(gimp-floating-sel-anchor (car (gimp-edit-paste SharpenLayer FALSE)))
          (gimp-layer-set-mode SharpenLayer LAYER-MODE-HSV-VALUE-LEGACY)
          (plug-in-edge TRUE MaskImage (aref MaskLayer 0) 6 1 0)
-        ; (gimp-levels-stretch (aref MaskLayer 0))
+         (gimp-drawable-levels-stretch (aref MaskLayer 0))
          (gimp-image-convert-grayscale MaskImage)
          (plug-in-gauss TRUE MaskImage (aref MaskLayer 0) 6 6 TRUE)
          (let* ((SharpenChannel (car (gimp-layer-create-mask SharpenLayer ADD-MASK-WHITE)))
