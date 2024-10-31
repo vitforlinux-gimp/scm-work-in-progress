@@ -255,7 +255,10 @@
 	(gimp-drawable-fill bkg-layer FILL-FOREGROUND)
 	(gimp-drawable-edit-fill bkg-layer FILL-BACKGROUND)
 	(gimp-selection-none image)
+		(if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10) 
 	(plug-in-gauss-rle2 RUN-NONINTERACTIVE image bkg-layer 5 5)
+		(plug-in-gauss RUN-NONINTERACTIVE image bkg-layer (* 5 0.32) (* 5 0.32) 1))
+
 	;(gimp-image-select-color image 2 bkg-layer '(0 0 0) )
 (gimp-image-select-item image 2 drawable)
 ;	(gimp-selection-invert image)
@@ -275,7 +278,10 @@
 	  (gimp-drawable-edit-gradient-fill chrome GRADIENT-LINEAR 0 0 1 0 0 (+ offx x1) (+ offy y2) (+ offx x1) (+ offy y1))
 	(gimp-selection-none image)
 	(plug-in-bump-map RUN-NONINTERACTIVE image chrome bkg-layer 135 45 3 0 0 0 0 TRUE FALSE 0) ;{LINEAR(0),SPHERICAL(1),SINUSOIDAL(2)}
+	(if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10) 
 	(gimp-drawable-curves-spline chrome 0  12 #(0 0.34902 0.266667 0.882353 0.494118 0.376471 0.65098 0.886275 0.87451 0.152941 1 1))
+	(gimp-drawable-curves-spline chrome HISTOGRAM-VALUE #(0 0.34902 0.266667 0.882353 0.494118 0.376471 0.65098 0.886275 0.87451 0.152941 1 1) )	)
+
 	(plug-in-alienmap2 1 image chrome 1 0 1 0 1 0 0 TRUE TRUE TRUE)
 	(gimp-image-remove-layer image bkg-layer)
 	
