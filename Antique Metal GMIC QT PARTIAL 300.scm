@@ -42,9 +42,13 @@
 (cond ((not (defined? 'gimp-text-fontname)) (define (gimp-text-fontname fn1 fn2 fn3 fn4 fn5 fn6 fn7 fn8 PIXELS fn9) (gimp-text-font fn1 fn2 fn3 fn4 fn5 fn6 fn7 fn8 fn9))))
 
 ;(cond ((not (defined? 'gimp-image-get-active-drawable)) (define (gimp-image-get-active-drawable image) (vector-ref (car (gimp-image-get-selected-drawables image)) 0))))
-		(define (apply-gauss img drawable x y)(begin (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
-      (plug-in-gauss  1  img drawable x y 0)
- (plug-in-gauss  1  img drawable (* x 0.32) (* y 0.32) 0)  )))
+  		(define (apply-gauss2 img drawable x y)
+       (cond ((not(defined? 'plug-in-gauss))
+           (gimp-drawable-merge-new-filter drawable "gegl:gaussian-blur" 0 LAYER-MODE-REPLACE 1.0
+                                    "std-dev-x" (* x 0.32) "std-dev-y" (* y 0.32) "filter" "auto"))
+       (else
+	(plug-in-gauss 1 img drawable x y 0)
+)))
  
 (define (script-fu-antique-metal-gmic-qt-logo-300 
                                       text
@@ -333,7 +337,7 @@
 (gimp-context-set-opacity opacity)
 (gimp-drawable-edit-bucket-fill inner-shadow  FILL-FOREGROUND  0 0)
 (gimp-selection-none image)
-	(apply-gauss image inner-shadow (* bev-width 3) (* bev-width 3))
+	(apply-gauss2 image inner-shadow (* bev-width 3) (* bev-width 3))
 (gimp-message "330 alpha")
 ;;;;create the inner glow
 	;(gimp-image-set-active-layer image inner-glow)
@@ -354,7 +358,7 @@
 (gimp-context-set-opacity opacity)
 (gimp-drawable-edit-bucket-fill inner-glow FILL-FOREGROUND  0 0)
 (gimp-selection-none image)
-	(apply-gauss image inner-glow (* bev-width 2) (* bev-width 2))
+	(apply-gauss2 image inner-glow (* bev-width 2) (* bev-width 2))
     (gimp-image-raise-item-to-top image bkg-layer)
     (set! image-layer (car (gimp-image-merge-visible-layers image EXPAND-AS-NECESSARY)))
     (gimp-message "360 alpha")
@@ -393,7 +397,7 @@
 ))
      (gimp-drawable-curves-spline inner-bevel-layer 0 #(0 0 0.12549 0.619608 0.243137 0.117647 0.376471 0.87451 0.494118 0.376471 0.623529 1 0.741176 0.627451 0.870588 1 1 1
 )))
-     (apply-gauss image inner-bevel-layer postblur 1 )
+     (apply-gauss2 image inner-bevel-layer postblur 1 )
 	 
 ;;;;Clean up the layers
         (gimp-message "399 alpha")
@@ -418,7 +422,7 @@
 				;		"-fx_draw_whirl 78.4"))
 
 	;(plug-in-mblur 1 image texture-layer 0 4 90 (/ width 2) (/ height 2))
-	(apply-gauss image texture-layer  4 0)
+	(apply-gauss2 image texture-layer  4 0)
 (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
 	(gimp-drawable-curves-spline texture-layer 0 18 #(0 1 0.121569 0 0.243137 1 0.356863 0 0.498039 1 0.623529 0 0.745098 1 0.87451 0 1 1))
 		(gimp-drawable-curves-spline texture-layer 0 #(0 1 0.121569 0 0.243137 1 0.356863 0 0.498039 1 0.623529 0 0.745098 1 0.87451 0 1 1)))
@@ -681,38 +685,48 @@
 ;;;;apply the image effects
     (gimp-context-set-foreground '(0 0 0))
 	(gimp-context-set-background '(255 255 255))
-	(apply-gauss image img-layer 12 12)
+	(apply-gauss2 image img-layer 12 12)
 	(plug-in-emboss RUN-NONINTERACTIVE image img-layer 225 84 10 TRUE)	
 	(gimp-selection-invert image)
 	(gimp-drawable-edit-clear img-layer)
 	(gimp-selection-invert image)
-	(plug-in-colortoalpha RUN-NONINTERACTIVE image img-layer '(254 254 254));;fefefe
-	(apply-gauss image img-channel 15 15)
-	(plug-in-blur RUN-NONINTERACTIVE image img-layer)
+	(gimp-message "696 alpha")
+	;(plug-in-colortoalpha RUN-NONINTERACTIVE image img-layer '(254 254 254));;fefefe QUI!
+	;(remove-color image img-layer '(254 254 254))
+		(gimp-layer-set-mode img-layer LAYER-MODE-SOFTLIGHT )
+
+	(apply-gauss2 image img-channel 15 15)
+	;(plug-in-blur RUN-NONINTERACTIVE image img-layer)
 	;(gimp-image-set-active-layer image bkg-layer)
+	(gimp-message "704 alpha")
 (cond ((defined? 'gimp-image-set-selected-layers) (gimp-image-set-selected-layers image (vector bkg-layer)))
 (else (gimp-image-set-active-layer image bkg-layer))
 )
+(gimp-message "708 alpha")
 (plug-in-displace RUN-NONINTERACTIVE image bkg-layer 8 8 TRUE TRUE img-channel img-channel 1)
 (gimp-image-remove-layer image bkg-layer)
-	
+		(gimp-message "709 alpha")
 ;;;;create the shadow
 (if (> shadow-size 0)
   (begin
-    (script-fu-drop-shadow image img-layer shadow-size shadow-size shadow-size '(0 0 0) shadow-opacity FALSE)
+  	(if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
+    (script-fu-drop-shadow image img-layer shadow-size shadow-size shadow-size '(0 0 0) shadow-opacity FALSE)	
+    (script-fu-drop-shadow image (vector img-layer) shadow-size shadow-size shadow-size '(0 0 0) shadow-opacity FALSE))
     (set! tmp-layer (car (gimp-layer-new image width height RGBA-IMAGE "temp" 100 LAYER-MODE-NORMAL-LEGACY)))
     (gimp-image-insert-layer image tmp-layer 0 -1)
 	(gimp-image-raise-item image tmp-layer)
     (gimp-image-merge-down image tmp-layer CLIP-TO-IMAGE)
+    		(gimp-message "722 alpha")
 	;(set! shadow-layer (car (gimp-image-get-active-drawable image)))
 	(if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10) 
 		(set! shadow-layer (car (gimp-image-get-active-drawable image)))
 		(set! shadow-layer (vector-ref (car (gimp-image-get-selected-drawables image)) 0)))
+    		(gimp-message "720 alpha")
 	(gimp-image-lower-item image shadow-layer)
 	
    )
  )	
-
+    		(gimp-message "725 alpha")
  (if (= conserve FALSE)
     (begin
 	(set! img-layer (car (gimp-image-merge-down image img-layer EXPAND-AS-NECESSARY)))
@@ -720,11 +734,11 @@
 	(gimp-item-set-name img-layer layer-name)
 	)
 	)	
-
+    		(gimp-message "733 alpha")
 	(if (= keep-selection FALSE) (gimp-selection-none image))	
 	(gimp-image-remove-channel image img-channel)
 	(if (and (= conserve FALSE) (= alpha FALSE) (gimp-layer-flatten img-layer)))
-	
+    		(gimp-message "737 alpha")	
 	(gimp-image-undo-group-end image)
 	(gimp-context-pop)
     ;(gimp-display-new image)
