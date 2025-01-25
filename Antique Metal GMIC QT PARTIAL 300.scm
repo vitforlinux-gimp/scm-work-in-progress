@@ -49,6 +49,10 @@
        (else
 	(plug-in-gauss 1 img drawable x y 0)
 )))
+(define (gimp-layer-new-ng ln1 ln2 ln3 ln4 ln5 ln6 ln7)
+(if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
+(gimp-layer-new ln1 ln2 ln3 ln4 ln5 ln6 ln7)
+(gimp-layer-new ln1 ln5 ln2 ln3 ln4 ln6 ln7)))
  
 (define (script-fu-antique-metal-gmic-qt-logo-300 
                                       text
@@ -282,7 +286,7 @@
 	(gimp-selection-none image)
 	
 ;;;;create the background layer    
-	(set! bkg-layer (car (gimp-layer-new image width height RGBA-IMAGE "Background" 100 LAYER-MODE-NORMAL-LEGACY)))
+	(set! bkg-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "Background" 100 LAYER-MODE-NORMAL-LEGACY)))
     (gimp-image-insert-layer image bkg-layer 0 1)
 	    	
 	(if (= apply-grunge TRUE) 
@@ -372,7 +376,7 @@
     (gimp-message "370 alpha")
 ;;;;Add new layer with Bevel
     (gimp-image-select-item image 2 selection-channel)
-    (set! inner-bevel-layer (car (gimp-layer-new image width height RGBA-IMAGE "Inner bevel" 100 LAYER-MODE-NORMAL-LEGACY)))
+    (set! inner-bevel-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "Inner bevel" 100 LAYER-MODE-NORMAL-LEGACY)))
     (gimp-image-insert-layer image inner-bevel-layer 0 -1)
     ;(gimp-image-set-active-layer image inner-bevel-layer)
 (cond ((defined? 'gimp-image-set-selected-layers) (gimp-image-set-selected-layers image (vector inner-bevel-layer)))
@@ -407,7 +411,7 @@
 	(gimp-drawable-edit-clear inner-bevel-layer)
 	
 ;;;;create the texture-layer
-    (set! texture-layer (car (gimp-layer-new image width height RGBA-IMAGE "Texture" 100 LAYER-MODE-NORMAL-LEGACY)))
+    (set! texture-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "Texture" 100 LAYER-MODE-NORMAL-LEGACY)))
     (gimp-image-insert-layer image texture-layer 0 -1)
     (gimp-image-select-item image 2 selection-channel)
 	(gimp-context-set-foreground '(123 123 123))
@@ -456,7 +460,7 @@
 			    (gimp-message "446 alpha")
 
 ;;;;set the different metal types
-	(set! metal-layer (car (gimp-layer-new image width height RGBA-IMAGE "Plating" 80 LAYER-MODE-NORMAL-LEGACY)))
+	(set! metal-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "Plating" 80 LAYER-MODE-NORMAL-LEGACY)))
 		    (gimp-message "450 alpha")
 
     (gimp-image-insert-layer image metal-layer 0 -1)
@@ -502,7 +506,7 @@
 	(vector-ref (car (gimp-image-get-selected-layers image)) 0)))
 	(gimp-item-set-name image-layer text)
 	
-	(set! frame-layer (car (gimp-layer-new image width height RGBA-IMAGE "Frame" 100 LAYER-MODE-NORMAL-LEGACY)))
+	(set! frame-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "Frame" 100 LAYER-MODE-NORMAL-LEGACY)))
     (gimp-image-insert-layer image frame-layer 0 -1)
 	;(gimp-image-raise-item image frame-layer)
 	(set! frame-layer (car (gimp-image-merge-down image frame-layer EXPAND-AS-NECESSARY)))
@@ -604,13 +608,13 @@
 	(gimp-context-set-foreground '(0 0 0))
 	(gimp-context-set-background '(255 255 255))
 	
-	(set! paper-layer (car (gimp-layer-new image width height RGBA-IMAGE "Paper Layer" 100 LAYER-MODE-NORMAL-LEGACY)))
+	(set! paper-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "Paper Layer" 100 LAYER-MODE-NORMAL-LEGACY)))
 	(gimp-image-insert-layer image paper-layer 0 -1)
 	(gimp-context-set-background grunge-color)
     (gimp-drawable-edit-fill paper-layer FILL-BACKGROUND)
 	;(plug-in-apply-canvas RUN-NONINTERACTIVE image paper-layer 0 1)
 		(gimp-message "595 canvas")
-	(set! mottle-layer (car (gimp-layer-new image width height RGBA-IMAGE "Mottle Layer" opacity 21)))
+	(set! mottle-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "Mottle Layer" opacity 21)))
 	(gimp-image-insert-layer image mottle-layer 0 -1)
     (plug-in-solid-noise RUN-NONINTERACTIVE image mottle-layer 0 0 (random 65536) 1 2 2)
 	(set! paper-layer (car (gimp-image-merge-down image mottle-layer CLIP-TO-IMAGE)))
@@ -659,7 +663,7 @@
 	(if (= sel TRUE) (set! keep-selection FALSE))
 	(if (= sel TRUE) (gimp-image-select-item image 2 image-layer))
 	
-	(set! img-layer (car (gimp-layer-new image width height RGBA-IMAGE "img-layer" 100 LAYER-MODE-NORMAL-LEGACY)))
+	(set! img-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "img-layer" 100 LAYER-MODE-NORMAL-LEGACY)))
 	(gimp-image-insert-layer image img-layer 0 -1)
 	(gimp-drawable-fill img-layer  FILL-BACKGROUND)
 	(gimp-drawable-edit-fill img-layer FILL-FOREGROUND)
@@ -679,7 +683,7 @@
 	(gimp-item-set-name image-layer "Original Image")
 	
 ;;;;create the background layer    
-	(set! bkg-layer (car (gimp-layer-new image width height RGBA-IMAGE "Background" 100 LAYER-MODE-NORMAL-LEGACY)))
+	(set! bkg-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "Background" 100 LAYER-MODE-NORMAL-LEGACY)))
     (gimp-image-insert-layer image bkg-layer 0 1) 
 
 ;;;;apply the image effects
@@ -712,7 +716,7 @@
   	(if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
     (script-fu-drop-shadow image img-layer shadow-size shadow-size shadow-size '(0 0 0) shadow-opacity FALSE)	
     (script-fu-drop-shadow image (vector img-layer) shadow-size shadow-size shadow-size '(0 0 0) shadow-opacity FALSE))
-    (set! tmp-layer (car (gimp-layer-new image width height RGBA-IMAGE "temp" 100 LAYER-MODE-NORMAL-LEGACY)))
+    (set! tmp-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "temp" 100 LAYER-MODE-NORMAL-LEGACY)))
     (gimp-image-insert-layer image tmp-layer 0 -1)
 	(gimp-image-raise-item image tmp-layer)
     (gimp-image-merge-down image tmp-layer CLIP-TO-IMAGE)
