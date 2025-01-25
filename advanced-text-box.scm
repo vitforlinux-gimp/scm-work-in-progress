@@ -19,17 +19,24 @@ SF-ADJUSTMENT  "Line Spacing"          '(-5 -300 300 1 10 0 0)
 SF-ADJUSTMENT _"Shrink / Grow Text"          '(0 -20 20 1 10 0 0)
 SF-ADJUSTMENT _"Outline"          '(0 0 20 1 10 0 0)
                                                         ;a spin-button
-           
+           SF-COLOR       "Background Color"         '(255 255 255)     ;color variable
             SF-ADJUSTMENT  "Buffer amount" '(35 0 100 1 10 1 0)
                                                         ;a slider
   )
   (script-fu-menu-register "script-fu-advanced-text-box" "<Image>/File/Create/Text")
+  
+(define (gimp-layer-new-ng ln1 ln2 ln3 ln4 ln5 ln6 ln7)
+(if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
+(gimp-layer-new ln1 ln2 ln3 ln4 ln5 ln6 ln7)
+(gimp-layer-new ln1 ln5 ln2 ln3 ln4 ln6 ln7)))
+  
   (define (script-fu-advanced-text-box inText inFont inFontSize inTextColor
 					justification
 					letter-spacing
 					line-spacing
 					grow-text
 					outline
+					bgColor
 					inBufferAmount)
     (let*
       (
@@ -51,7 +58,7 @@ SF-ADJUSTMENT _"Outline"          '(0 0 20 1 10 0 0)
         (theBuffer)           ;create a new layer for the image
         (theLayer
                   (car
-                      (gimp-layer-new
+                      (gimp-layer-new-ng
                         theImage
                         theImageWidth
                         theImageHeight
@@ -68,7 +75,7 @@ SF-ADJUSTMENT _"Outline"          '(0 0 20 1 10 0 0)
 						       ((= justification 3) 3)))
       ) ;end of our local variables
       (gimp-image-insert-layer theImage theLayer 0 0)
-      (gimp-context-set-background '(255 255 255) )
+      (gimp-context-set-background bgColor)
       (gimp-context-set-foreground inTextColor)
       (gimp-drawable-fill theLayer FILL-BACKGROUND)
       (set! theText
