@@ -49,7 +49,8 @@
        (else
 	(plug-in-gauss 1 img drawable x y 0)
 )))
-(define (gimp-layer-new-ng ln1 ln2 ln3 ln4 ln5 ln6 ln7)
+
+  (define (gimp-layer-new-ng ln1 ln2 ln3 ln4 ln5 ln6 ln7)
 (if (= (string->number (substring (car(gimp-version)) 0 3)) 2.10)
 (gimp-layer-new ln1 ln2 ln3 ln4 ln5 ln6 ln7)
 (gimp-layer-new ln1 ln5 ln2 ln3 ln4 ln6 ln7)))
@@ -392,7 +393,12 @@
     (gimp-selection-all image)
     (gimp-message "385 alpha")
     (if (= ds-apply TRUE) (gimp-drawable-invert inner-bevel-layer TRUE))
-    (plug-in-emboss RUN-NONINTERACTIVE image inner-bevel-layer azimuth elevation depth 1);Emboss
+		 (cond((not(defined? 'plug-in-emboss))
+		 		     (gimp-drawable-merge-new-filter inner-bevel-layer "gegl:emboss" 0 LAYER-MODE-REPLACE 1.0
+"type" "bumpmap" "azimuth" azimuth "elevation" elevation "depth" depth)
+		)
+		(else
+    (plug-in-emboss RUN-NONINTERACTIVE image inner-bevel-layer azimuth elevation depth 1)));Emboss
     (gimp-message "388 alpha")
 
 ;;;;gloss the bevel-layer 
@@ -436,7 +442,18 @@
 
     (gimp-selection-none image)
 	;(gimp-image-remove-channel image selection-channel)
-	(plug-in-bump-map 1 image inner-bevel-layer texture-layer 135 45 5 0 0 0 0 TRUE FALSE 2)
+	(cond((not(defined? 'plug-in-bump-map))
+	    (let* ((filter (car (gimp-drawable-filter-new inner-bevel-layer "gegl:bump-map" ""))))
+      (gimp-drawable-filter-configure filter LAYER-MODE-REPLACE 1.0
+                                      "azimuth" 135 "elevation" 45 "depth" 5
+                                      "offset-x" 0 "offset-y" 0 "waterlevel" 0.0 "ambient" 0.0
+                                      "compensate" TRUE "invert" FALSE "type" "linear"
+                                      "tiled" FALSE)
+      (gimp-drawable-filter-set-aux-input filter "aux" texture-layer)
+      (gimp-drawable-merge-filter inner-bevel-layer filter)
+    ))
+    (else
+	(plug-in-bump-map 1 image inner-bevel-layer texture-layer 135 45 5 0 0 0 0 TRUE FALSE 2)))
 	(gimp-image-remove-layer image texture-layer)
 	(gimp-drawable-color-balance inner-bevel-layer 0 TRUE 40 0 0);shadows
 	(gimp-image-select-item image 2 selection-channel)
@@ -616,9 +633,19 @@
 		(gimp-message "595 canvas")
 	(set! mottle-layer (car (gimp-layer-new-ng image width height RGBA-IMAGE "Mottle Layer" opacity 21)))
 	(gimp-image-insert-layer image mottle-layer 0 -1)
-    (plug-in-solid-noise RUN-NONINTERACTIVE image mottle-layer 0 0 (random 65536) 1 2 2)
+					  (cond((not(defined? 'plug-in-solid-noise))
+					                (gimp-drawable-merge-new-filter mottle-layer "gegl:noise-solid" 0 LAYER-MODE-REPLACE 1.0
+							"tileable" FALSE "turbulent" FALSE "seed" (random 65536)
+                                                                                                       "detail" 1 "x-size" 2 "y-size" 2
+                                                                                                       "width" width "height" height))
+												       (else
+    (plug-in-solid-noise RUN-NONINTERACTIVE image mottle-layer 0 0 (random 65536) 1 2 2)))
 	(set! paper-layer (car (gimp-image-merge-down image mottle-layer CLIP-TO-IMAGE)))
-	(plug-in-spread 1 image paper-layer 5 5)
+					  (cond((not(defined? 'plug-in-spread))
+					                (gimp-drawable-merge-new-filter paper-layer "gegl:noise-spread" 0 LAYER-MODE-REPLACE 1.0
+                                                                                                        "amount-x" 5 "amount-y" 5 "seed" 0))
+												       (else
+	(plug-in-spread 1 image paper-layer 5 5)))
     
 	(gimp-displays-flush)
 	(gimp-image-undo-group-end image)
@@ -690,7 +717,12 @@
     (gimp-context-set-foreground '(0 0 0))
 	(gimp-context-set-background '(255 255 255))
 	(apply-gauss2 image img-layer 12 12)
-	(plug-in-emboss RUN-NONINTERACTIVE image img-layer 225 84 10 TRUE)	
+		 (cond((not(defined? 'plug-in-emboss))
+		 		     (gimp-drawable-merge-new-filter img-layer "gegl:emboss" 0 LAYER-MODE-REPLACE 1.0
+"type" "emboss" "azimuth" 225 "elevation" 84 "depth" 10)
+		)
+		(else
+	(plug-in-emboss RUN-NONINTERACTIVE image img-layer 225 84 10 TRUE)))	
 	(gimp-selection-invert image)
 	(gimp-drawable-edit-clear img-layer)
 	(gimp-selection-invert image)
@@ -707,7 +739,18 @@
 (else (gimp-image-set-active-layer image bkg-layer))
 )
 (gimp-message "708 alpha")
-(plug-in-displace RUN-NONINTERACTIVE image bkg-layer 8 8 TRUE TRUE img-channel img-channel 1)
+	(cond((not(defined? 'plug-in-displace))
+          (let* (
+                 (filter (car (gimp-drawable-filter-new bkg-layer "gegl:displace" ""))))
+            (gimp-drawable-filter-configure filter LAYER-MODE-REPLACE 1.0
+                                            "amount-x" 8 "amount-y" 8 "abyss-policy" "clamp"
+                                            "sampler-type" "cubic" "displace-mode" "cartesian")
+            (gimp-drawable-filter-set-aux-input filter "aux" img-channel)
+            (gimp-drawable-filter-set-aux-input filter "aux2" img-channel)
+            (gimp-drawable-merge-filter bkg-layer filter)
+          ))
+        (else
+(plug-in-displace RUN-NONINTERACTIVE image bkg-layer 8 8 TRUE TRUE img-channel img-channel 1)))
 (gimp-image-remove-layer image bkg-layer)
 		(gimp-message "709 alpha")
 ;;;;create the shadow
