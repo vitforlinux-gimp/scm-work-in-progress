@@ -113,6 +113,8 @@
          )
 		 
     (gimp-context-push)
+        (gimp-context-set-defaults)
+    (gimp-context-set-paint-mode 0)
 	(gimp-context-set-foreground '(0 0 0))
 	(gimp-context-set-background '(255 255 255))
 	
@@ -257,6 +259,8 @@
         )	
 	(gimp-message "246 alpha")
 	(gimp-context-push)
+	    (gimp-context-set-defaults)
+    (gimp-context-set-paint-mode 0)
     (gimp-image-undo-group-start image)
 	(gimp-context-set-foreground '(0 0 0))
 	(gimp-context-set-background '(255 255 255))
@@ -621,6 +625,8 @@
 	
 	(set! burn-size (/ (* nominal-burn-size (max width height 1))))
 	(gimp-context-push)
+	    (gimp-context-set-defaults)
+    (gimp-context-set-paint-mode 0)
     (gimp-image-undo-group-start image)
 	(gimp-context-set-foreground '(0 0 0))
 	(gimp-context-set-background '(255 255 255))
@@ -681,6 +687,8 @@
 		
 		
 	(gimp-context-push)
+	    (gimp-context-set-defaults)
+    (gimp-context-set-paint-mode 0)
     (gimp-image-undo-group-start image)
 	(gimp-context-set-foreground '(0 0 0))
 	(gimp-context-set-background '(255 255 255))
