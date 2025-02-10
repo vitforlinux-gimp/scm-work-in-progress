@@ -543,7 +543,9 @@
 (cond ((defined? 'gimp-image-set-selected-layers) (gimp-image-set-selected-layers image (vector image-layer)))
 (else (gimp-image-set-active-layer image image-layer))
 )
-	(plug-in-autocrop-layer 1 image image-layer)
+	
+	(cond ((defined? 'plug-in-autocrop)(plug-in-autocrop-layer 1 image image-layer))
+	(else (gimp-image-autocrop image image-layer)))
 	(set! offset-x (car (gimp-drawable-get-offsets image-layer)))
 	(set! offset-y (cadr (gimp-drawable-get-offsets image-layer)))
 	;(gimp-drawable-offset selection-channel FALSE OFFSET-BACKGROUND offset-x offset-y)
